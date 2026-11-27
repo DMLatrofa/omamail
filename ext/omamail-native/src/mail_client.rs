@@ -41,7 +41,7 @@ fn bindings_block() -> String {
         BLOCK_BEGIN,
         "hl.unbind(\"SUPER + SHIFT + E\")",
         "hl.unbind(\"SUPER + SHIFT + ALT + E\")",
-        &format!("o.bind(\"SUPER + SHIFT + E\", \"Email\", \"gtk-launch {DESKTOP_ID}\")"),
+        &format!("o.bind(\"SUPER + SHIFT + E\", \"Email\", \"gtk-launch {DESKTOP_ID} omamail://inbox/shortcut\")"),
         "o.bind(\"SUPER + SHIFT + ALT + E\", \"New email\", \"xdg-open mailto:\")",
         BLOCK_END,
     ]
@@ -277,6 +277,9 @@ mod linux {
     use super::files::{read, write};
     use std::path::PathBuf;
     use std::process::{Command, Stdio};
+    use std::sync::Mutex;
+
+    static BINDINGS_WRITE: Mutex<()> = Mutex::new(());
 
     fn bindings_file() -> Option<PathBuf> {
         let config = std::env::var_os("XDG_CONFIG_HOME")
@@ -327,7 +330,7 @@ mod linux {
 
     fn reload_hyprland() {
         if std::env::var_os("HYPRLAND_INSTANCE_SIGNATURE").is_some_and(|v| !v.is_empty()) {
-            let _ = run("hyprctl", &["reload"]);
+            let _ = run("hyprctl", &["reload", "config-only"]);
         }
     }
 
@@ -358,7 +361,41 @@ mod linux {
         super::is_legacy_default(&text, &mailto) && set(true).is_ok()
     }
 
+    pub fn prepare_shortcut() -> Result<bool, &'static str> {
+        let _write = BINDINGS_WRITE.lock().map_err(|_| "bindings_unwritable")?;
+        if status() != "default" {
+            return Ok(false);
+        }
+        let path = bindings_file().ok_or("bindings_unwritable")?;
+        let text = read(&path)?;
+        let old = format!("gtk-launch {}", super::DESKTOP_ID);
+        let new = format!("{old} omamail://inbox/shortcut");
+        let lines: Vec<_> = text.lines().collect();
+        let managed = super::managed_lines(&lines);
+        let existing = text
+            .split_inclusive('\n')
+            .zip(managed)
+            .find_map(|(line, owned)| {
+                (owned && line.contains("o.bind(\"SUPER + SHIFT + E\",") && line.contains(&old))
+                    .then_some(line)
+            });
+        let Some(existing) = existing else {
+            return Ok(false);
+        };
+        if !existing.contains(&new) {
+            let mut revised = String::with_capacity(text.len() + new.len() - old.len());
+            let offset = existing.as_ptr() as usize - text.as_ptr() as usize;
+            revised.push_str(&text[..offset]);
+            revised.push_str(&existing.replacen(&old, &new, 1));
+            revised.push_str(&text[offset + existing.len()..]);
+            write(&path, &revised)?;
+            reload_hyprland();
+        }
+        Ok(true)
+    }
+
     pub fn set(enabled: bool) -> Result<String, &'static str> {
+        let _write = BINDINGS_WRITE.lock().map_err(|_| "bindings_unwritable")?;
         let path = bindings_file().ok_or("bindings_unwritable")?;
         let text = read(&path)?;
         if enabled {
@@ -395,6 +432,9 @@ mod linux {
         }
     }
 }
+
+#[cfg(target_os = "linux")]
+pub(super) use linux::prepare_shortcut;
 
 /// Whether mailto: links and Omarchy's SUPER+SHIFT+E open Omamail.
 #[module]
@@ -528,7 +568,7 @@ mod tests {
         // programs. No value from the UI, the environment or the file.
         let block = bindings_block();
         assert_eq!(block.lines().count(), 6);
-        assert!(block.contains("gtk-launch dev.huacnlee.omamail\")"));
+        assert!(block.contains("gtk-launch dev.huacnlee.omamail omamail://inbox/shortcut\")"));
         assert!(block.contains("\"xdg-open mailto:\")"));
         assert!(
             block

@@ -9,6 +9,7 @@
 // said yes, for this message ("Show images") or for all of them ("Always
 // show"); everything that reaches the body is data the backend prepared.
 import { batch, cleanup, computed, effect, openUrl, signal, untracked } from "nsh";
+import { openCompanionLink } from "../../shell/dropDown";
 import { Backend } from "omamail-native";
 import { app } from "../../app/store";
 import { call } from "../../backend/client";
@@ -646,6 +647,7 @@ async function openLink(url: string, confirm: (target: string) => Promise<boolea
   if (web === "") return;
   if (!(await confirm(web))) return;
   try {
+    if (await openCompanionLink(web)) return;
     const result = await openUrl(web);
     if (!result.opened) note("No app could open that link");
   } catch {

@@ -74,12 +74,16 @@ Omarchy opens HEY's web app on `SUPER+SHIFT+E`. Choose **Settings → Default ma
 
 The key bindings go in a clearly marked block in `~/.config/hypr/bindings.lua`; Omarchy's own files are never changed. **Undo** removes the block and leaves the file as it was.
 
-## Open the Omarchy plugin from the keyboard
+## Open the inbox as a drop-down
 
-To use another key, add this to `~/.config/hypr/bindings.lua`:
+On Hyprland, **Settings → Opening behavior** offers independent **Window** and **Drop-down** choices for the Omarchy envelope and `SUPER+SHIFT+E`. The shortcut's setting is available when Omamail is the default mail client. The drop-down follows your Hyprland layout. Press the opening control again to hide the inbox and any companion browser windows without closing them.
+
+When you confirm a link in a message, Brave, Chromium, or Google Chrome can open next to the inbox if it is your default browser. The first link opens a new window with the browser's last-used profile. Later links reuse that window. Other browsers use the normal system link handler.
+
+To use another key, add a binding such as this to `~/.config/hypr/bindings.lua`:
 
 ```lua
-o.bind("SUPER + SHIFT + G", "Omamail", "omarchy shell shell toggle omamail '{}'")
+o.bind("SUPER + SHIFT + G", "Omamail", "gtk-launch dev.huacnlee.omamail omamail://inbox/bar")
 ```
 
 Press `?` in Omamail for the shortcut sheet, or see the [keyboard guide](docs/KEYS.md).

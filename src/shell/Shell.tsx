@@ -4,6 +4,9 @@
 // decides only where each sits and when it shows.
 import { cleanup, createMotion, effect, signal, untracked, View, windowSize, type KeyEvent } from "nsh";
 import { currentWindow } from "nsh/desktop";
+import { dismissInbox, presentInbox } from "./dropDown";
+import { openingMode } from "./launchSource";
+import { isDefaultMailClient } from "../features/settings/sections";
 import { loadAccounts } from "../app/bootstrap";
 import { persistPrefs, prefs } from "../app/prefs";
 import { app } from "../app/store";
@@ -49,7 +52,10 @@ export function Shell(props: ShellProps) {
   startAccounts();
   // A second launch with a mailto: link (Linux, Windows) opens a draft here.
   if (props.launchLinks !== false) {
-    const stopLinks = startLaunchLinks((request) => openCompose(request));
+    const stopLinks = startLaunchLinks((request) => openCompose(request), async (source) => {
+      await settings.load();
+      return presentInbox(openingMode(source, settings.all(), source === "shortcut" && isDefaultMailClient()));
+    });
     cleanup(stopLinks);
     // A Qt-era plugin user's SUPER+SHIFT+E and mailto: default still point
     // at the old plugin; this app takes them over once (Linux only).
@@ -78,7 +84,7 @@ export function Shell(props: ShellProps) {
   // on macOS it hides it, as the close button does (the app stays in the Dock).
   const window = currentWindow();
   effect(() => {
-    if (app.closeRequests() > 0) untracked(() => (hidesOnClose() ? window.hide() : window.close()));
+    if (app.closeRequests() > 0) untracked(() => void dismissInbox().then((hidden) => { if (!hidden) window.close(); }));
   });
 
   // Holding the mailbox digits' modifier (Ctrl; Command on Apple platforms,

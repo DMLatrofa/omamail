@@ -6,6 +6,10 @@
 // back is untrusted (hand edits, older versions): each is normalized, never
 // trusted as written.
 
+import type { OpeningMode } from "../../shell/launchSource";
+
+export const OPENING_MODES = ["Window", "Drop-down"] as const;
+
 export const APPEARANCE = ["System", "Light", "Dark", "Omarchy"] as const;
 export type Appearance = (typeof APPEARANCE)[number];
 
@@ -82,6 +86,8 @@ export interface Settings {
   oauthPort: number;
   undoSendSeconds: number;
   showBarIcon: boolean;
+  openOnClick: OpeningMode;
+  openOnShortcut: OpeningMode;
   unifiedMailboxes: boolean;
   suggestEvents: boolean;
 }
@@ -98,6 +104,8 @@ export const DEFAULTS: Settings = {
   oauthPort: 9481,
   undoSendSeconds: UNDO_SEND_DEFAULT,
   showBarIcon: true,
+  openOnClick: "Window",
+  openOnShortcut: "Window",
   unifiedMailboxes: false,
   suggestEvents: false,
 };
@@ -163,6 +171,8 @@ export function normalizeSettings(raw: unknown, platform: Platform = { omarchy: 
     })(),
     undoSendSeconds: normalizeUndoSend(source.undoSendSeconds),
     showBarIcon: bool(source.showBarIcon, DEFAULTS.showBarIcon),
+    openOnClick: source.openOnClick === "Drop-down" ? "Drop-down" : "Window",
+    openOnShortcut: source.openOnShortcut === "Drop-down" ? "Drop-down" : "Window",
     unifiedMailboxes: bool(source.unifiedMailboxes, DEFAULTS.unifiedMailboxes),
     suggestEvents: bool(source.suggestEvents, DEFAULTS.suggestEvents),
   };

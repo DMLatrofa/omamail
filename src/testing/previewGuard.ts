@@ -37,6 +37,13 @@ export const NATIVE_MEMBERS = [
   "MailClient.status",
   "MailClient.setDefault",
   "MailClient.migrateLegacy",
+  "InboxWorkspace.launchSource",
+  "InboxWorkspace.supported",
+  "InboxWorkspace.prepareShortcut",
+  "InboxWorkspace.present",
+  "InboxWorkspace.hide",
+  "InboxWorkspace.openLink",
+  "InboxWorkspace.release",
 ] as const;
 
 export interface NativeGuard {
@@ -81,6 +88,10 @@ export function guardNative(options: GuardOptions = {}): NativeGuard {
   for (const member of NATIVE_MEMBERS) {
     // Synchronous reads take a value, so the app's call stays synchronous
     // and is not counted: they change nothing and reach no account.
+    if (member === "InboxWorkspace.supported" || member === "InboxWorkspace.launchSource") {
+      native[member] = member === "InboxWorkspace.supported" ? false : null;
+      continue;
+    }
     if (member === "Backend.os") {
       native[member] = options.os ?? "macos";
       continue;

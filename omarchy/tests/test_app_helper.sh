@@ -47,6 +47,18 @@ DATA_DIRS="$SANDBOX/system"
 entry "$SANDBOX/data"
 [ "$(run status)" = installed ] || fail "status must say installed once the desktop entry exists"
 
+# The installed desktop entry receives the fixed bar launch reason.
+mkdir -p "$SANDBOX/bin"
+cat > "$SANDBOX/bin/gtk-launch" <<'SH'
+#!/bin/sh
+printf '%s\n' "$@"
+SH
+chmod +x "$SANDBOX/bin/gtk-launch"
+actual=$(env -i HOME="$SANDBOX/home" XDG_DATA_HOME="$SANDBOX/data" \
+  PATH="$SANDBOX/bin:/usr/bin:/bin" sh "$HELPER" open)
+expected=$(printf '%s\n' dev.huacnlee.omamail omamail://inbox/bar)
+[ "$actual" = "$expected" ] || fail "open must pass the fixed bar launch marker"
+
 # Export: kept as given, private.
 dir="$SANDBOX/config/omamail"
 file="$dir/plugin-settings.json"

@@ -4,7 +4,7 @@
 # plugin passes no arguments of its own to anything this runs.
 #
 #   omamail-app.sh status            prints "installed" or "missing"
-#   omamail-app.sh open              starts the app (exit 1 when missing)
+#   omamail-app.sh open              opens the inbox from the bar (exit 1 when missing)
 #   omamail-app.sh export-settings   reads the plugin's settings (JSON) on
 #                                    stdin and keeps them for the app to
 #                                    import on its first launch
@@ -48,10 +48,10 @@ case "${1:-}" in
     found=$(app_exec) || exit 1
     case "$found" in
       *.desktop)
-        if command -v gtk-launch >/dev/null 2>&1; then exec gtk-launch "$DESKTOP_ID"; fi
-        exec gio launch "$found"
+        if command -v gtk-launch >/dev/null 2>&1; then exec gtk-launch "$DESKTOP_ID" omamail://inbox/bar; fi
+        exec gio launch "$found" omamail://inbox/bar
         ;;
-      *) exec "$found" ;;
+      *) exec "$found" omamail://inbox/bar ;;
     esac
     ;;
   export-settings)

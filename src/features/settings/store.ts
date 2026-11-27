@@ -166,6 +166,8 @@ export const settings = {
   oauthPort: get("oauthPort"),
   undoSendSeconds: get("undoSendSeconds"),
   showBarIcon: get("showBarIcon"),
+  openOnClick: get("openOnClick"),
+  openOnShortcut: get("openOnShortcut"),
   unifiedMailboxes: get("unifiedMailboxes"),
   suggestEvents: get("suggestEvents"),
 

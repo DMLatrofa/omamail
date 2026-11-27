@@ -21,9 +21,11 @@
 // subject and body only, never attachments or other headers), and the result
 // only fills a draft. Nothing here sends.
 import { Application } from "nsh/desktop";
-import { Backend, MailClient } from "omamail-native";
+import { Backend, InboxWorkspace, MailClient } from "omamail-native";
 import { MAX_LENGTH } from "../mail/compose/mailto";
 import { bringToFront } from "./windowFocus";
+import { inboxSource, type InboxSource } from "./launchSource";
+import type { InboxPresentation } from "./dropDown";
 
 /** The longest link taken: compose's parser's own limit (32 KiB), checked
  * here too so an over-long argument is refused before anything reads it.
@@ -66,14 +68,35 @@ export function launchLink(): string | null {
  * launches to this window: brought forward, and a draft opened when the
  * launch carried a `mailto:` link. Call once at startup; `open` is compose's
  * `openCompose`. */
-export function startLaunchLinks(open: (request: { mailto: string }) => void): () => void {
+export function startLaunchLinks(
+  open: (request: { mailto: string }) => void,
+  onInbox?: (source: InboxSource | null) => Promise<InboxPresentation>,
+): () => void {
   const first = launchLink();
   if (first) open({ mailto: first });
+  else if (onInbox) {
+    try {
+      const initial = InboxWorkspace.launchSource();
+      if (initial === "bar" || initial === "shortcut") {
+        void onInbox(initial).then((presentation) => { if (presentation !== "hidden") bringToFront(); });
+      }
+    } catch {
+      // Only the desktop native module knows its process arguments.
+    }
+  }
   try {
     return Application.on("secondInstance", (launch) => {
-      bringToFront();
       const link = mailtoFromArgs(launch?.args);
-      if (link) open({ mailto: link });
+      const source = link ? null : inboxSource(launch?.args);
+      if (!onInbox) {
+        bringToFront();
+        if (link) open({ mailto: link });
+        return;
+      }
+      void onInbox(source).then((presentation) => {
+        if (presentation !== "hidden") bringToFront();
+        if (link) open({ mailto: link });
+      });
     });
   } catch {
     // A platform with one instance and no launch arguments (phones, the web).

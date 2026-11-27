@@ -17,6 +17,7 @@ import {
   BackendSection,
   GoogleClientSection,
   openGoogleClientSetup,
+  OpeningBehaviorSection,
   KeyboardSection,
   MailClientSection,
   mailClientSupported,
@@ -25,12 +26,14 @@ import {
   UndoSendRow,
 } from "./sections";
 import { settings } from "./store";
+import { dropDownSupported } from "../../shell/dropDown";
 import { CalendarSettings } from "../calendar";
 
 export { settings } from "./store";
 
 const SECTIONS = [
   { id: "backend", title: "Mail backend" },
+  { id: "opening", title: "Opening behavior" },
   { id: "mailClient", title: "Default mail client" },
   { id: "appearance", title: "Appearance" },
   { id: "reading", title: "Reading" },
@@ -52,6 +55,7 @@ export function SettingsPage() {
   const current = signal<SectionId>("backend");
   // Linux only: elsewhere the desktop owns the default mail app (docs/NSH-PORT.md).
   const hasMailClient = mailClientSupported();
+  const hasDropDown = dropDownSupported();
   const wide = signal(true);
   // The page rises in once, as every page does (DISTANCE.page); still under reduced motion.
   const motion = createMotion({ initial: reduceMotion() ? {} : { opacity: 0, translateY: DISTANCE.page } });
@@ -62,7 +66,7 @@ export function SettingsPage() {
     refs[id]?.reveal({ vertical: "start" });
   }
 
-  const railSections = SECTIONS.filter((s) => s.id !== "mailClient" || hasMailClient);
+  const railSections = SECTIONS.filter((s) => (s.id !== "mailClient" || hasMailClient) && (s.id !== "opening" || hasDropDown));
   // The rail is one Tab stop: Up / Down, Home / End move to a section and scroll to it.
   const rail = useRovingFocus({
     targets: () => railSections.map((s) => ({ key: s.id, opens: true, depth: 0, folds: false, expanded: false })),
@@ -115,6 +119,11 @@ export function SettingsPage() {
           <SettingSection testID="settings-section-backend" title="Mail backend" viewRef={ref("backend")}>
             <BackendSection />
           </SettingSection>
+          <If when={hasDropDown}>
+            <SettingSection testID="settings-section-opening" title="Opening behavior" viewRef={ref("opening")}>
+              <OpeningBehaviorSection />
+            </SettingSection>
+          </If>
           <If when={hasMailClient}>
             <SettingSection testID="settings-section-mailClient" title="Default mail client" viewRef={ref("mailClient")}>
               <MailClientSection />

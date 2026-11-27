@@ -2,7 +2,7 @@
 // notifications, writing's undo window, AI, keyboard and the Google client.
 // Port of components/SettingsPage.qml, BackendSetup.qml and AiSettings.qml.
 import { appInfo, cleanup, signal, Text, View } from "nsh";
-import { MailClient } from "omamail-native";
+import { InboxWorkspace, MailClient } from "omamail-native";
 import { app } from "../../app/store";
 import { call } from "../../backend/client";
 import { AGENTS } from "../../mail/agent/options";
@@ -311,8 +311,65 @@ const MAIL_CLIENT_ERRORS: Record<string, string> = {
  * default mail client row). Asked when the section opens, because either
  * half can change behind the window's back.
  */
+const mailClientState = signal("");
+
+export function isDefaultMailClient(): boolean {
+  try {
+    return MailClient.status() === "default";
+  } catch {
+    return false;
+  }
+}
+
+export function OpeningBehaviorSection() {
+  const options = Model.OPENING_MODES.map((value) => ({ value, label: value }));
+  const isDefault = () => mailClientState() === "default";
+  const changingShortcut = signal(false);
+  async function saveShortcut(mode: (typeof Model.OPENING_MODES)[number]) {
+    if (!isDefault() || changingShortcut()) return;
+    if (mode === "Drop-down") {
+      changingShortcut.set(true);
+      try {
+        if (!(await InboxWorkspace.prepareShortcut())) return;
+      } catch {
+        toast({ title: "Could not update the email shortcut", kind: "error" });
+        return;
+      } finally {
+        changingShortcut.set(false);
+      }
+    }
+    settings.set("openOnShortcut", mode);
+  }
+  return (
+    <View class="gap-2">
+      <SettingRow title="Clicking the bar icon opens">
+        <Select
+          testID="settings-open-on-click"
+          accessibilityLabel="Clicking the bar icon opens"
+          items={options}
+          value={settings.openOnClick()}
+          onChange={({ value }) => settings.set("openOnClick", value === "Drop-down" ? "Drop-down" : "Window")}
+        />
+      </SettingRow>
+      <SettingRow
+        title="Super+Shift+E opens"
+        description={isDefault() ? undefined : "Set Omamail as the default mail client to change its shortcut opening mode."}
+      >
+        <Select
+          testID="settings-open-on-shortcut"
+          accessibilityLabel="Super+Shift+E opens"
+          items={options}
+          value={isDefault() ? settings.openOnShortcut() : "Window"}
+          disabled={!isDefault() || changingShortcut()}
+          onChange={({ value }) => void saveShortcut(value === "Drop-down" ? "Drop-down" : "Window")}
+        />
+      </SettingRow>
+    </View>
+  );
+}
+
 export function MailClientSection() {
-  const state = signal("");
+  const state = mailClientState;
   const busy = signal(false);
   const error = signal("");
   function refresh() {

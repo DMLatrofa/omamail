@@ -18,6 +18,7 @@ export function bringToFront(id = "main"): boolean {
   try {
     const window = windows().find((w) => w.id === id) ?? windows()[0];
     if (!window) return false;
+    if (window.state()?.minimized) window.restore();
     window.focus();
     return true;
   } catch {

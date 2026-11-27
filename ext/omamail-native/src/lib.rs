@@ -7,6 +7,7 @@
 
 mod diagnostics;
 mod entry;
+mod inbox_workspace;
 mod mail_client;
 mod worker;
 
@@ -20,6 +21,7 @@ fn native(registry: &mut Registry) {
     registry.module::<Backend>();
     registry.module::<diagnostics::Diagnostics>();
     registry.module::<mail_client::MailClient>();
+    registry.module::<inbox_workspace::InboxWorkspace>();
 }
 
 /// The mail backend, in process: JSON-RPC requests and notifications.
