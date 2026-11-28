@@ -59,6 +59,13 @@ actual=$(env -i HOME="$SANDBOX/home" XDG_DATA_HOME="$SANDBOX/data" \
 expected=$(printf '%s\n' dev.huacnlee.omamail omamail://inbox/bar)
 [ "$actual" = "$expected" ] || fail "open must pass the fixed bar launch marker"
 
+# A runner from an earlier installed release gets the marker directly.
+mkdir -p "$SANDBOX/data/omamail"
+cp "$SANDBOX/bin/gtk-launch" "$SANDBOX/data/omamail/Omamail"
+actual=$(env -i HOME="$SANDBOX/home" XDG_DATA_HOME="$SANDBOX/data" \
+  PATH="$SANDBOX/bin:/usr/bin:/bin" sh "$HELPER" open)
+[ "$actual" = "omamail://inbox/bar" ] || fail "a release runner must receive the bar marker directly"
+
 # Export: kept as given, private.
 dir="$SANDBOX/config/omamail"
 file="$dir/plugin-settings.json"

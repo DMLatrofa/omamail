@@ -138,7 +138,7 @@ fi
 # The packaged desktop entry names the runner and icon relative to the app;
 # the installed one names them where they are.
 awk -v exec="$app/Omamail" -v icon="$app/dev.huacnlee.omamail.png" '
-  /^Exec=/ { print "Exec=\"" exec "\""; next }
+  /^Exec=/ { print "Exec=\"" exec "\" %u"; next }
   /^Icon=/ { print "Icon=" icon; next }
   /^TryExec=/ { next }
   { print }

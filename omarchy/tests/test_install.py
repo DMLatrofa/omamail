@@ -131,7 +131,7 @@ class InstallTest(unittest.TestCase):
         self.assertTrue(os.access(self.app / "Omamail", os.X_OK))
         self.assertEqual(os.readlink(self.link), str(self.app / "Omamail"))
         entry = self.desktop.read_text()
-        self.assertIn(f'Exec="{self.app}/Omamail"\n', entry)
+        self.assertIn(f'Exec="{self.app}/Omamail" %u\n', entry)
         self.assertIn(f"Icon={self.app}/{APP_ID}.png\n", entry)
         self.assertIn(f"StartupWMClass={APP_ID}\n", entry)
         self.assertEqual(self.helper_status(), "installed")

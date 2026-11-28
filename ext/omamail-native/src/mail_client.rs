@@ -35,7 +35,10 @@ const BLOCK_END: &str = "-- <<< omamail default mail client";
 
 #[cfg_attr(not(target_os = "linux"), allow(dead_code))]
 fn shortcut_binding(marker: &str) -> String {
-    format!(r#"o.bind("SUPER + SHIFT + E", "Email", "gtk-launch {DESKTOP_ID}{marker}")"#)
+    // Earlier installed launcher entries dropped %u. The managed mailto
+    // entry is already registered with it when Omamail owns this shortcut.
+    let desktop = if marker.is_empty() { DESKTOP_ID } else { MAILTO_ID };
+    format!(r#"o.bind("SUPER + SHIFT + E", "Email", "gtk-launch {desktop}{marker}")"#)
 }
 
 #[cfg_attr(not(target_os = "linux"), allow(dead_code))]
@@ -189,7 +192,14 @@ const LEGACY_MAILTO: &str = "omamail.desktop";
 /// mailto: links opening nothing, so the app turns the switch on again.
 #[cfg_attr(not(target_os = "linux"), allow(dead_code))]
 fn is_legacy_default(bindings: &str, mailto: &str) -> bool {
-    mailto == LEGACY_MAILTO || (has_block(bindings) && !bindings.contains(&bindings_block()))
+    if mailto == LEGACY_MAILTO {
+        return true;
+    }
+    let lines: Vec<_> = bindings.lines().collect();
+    lines.iter().zip(managed_lines(&lines)).any(|(line, owned)| {
+        owned && line.contains(r#"o.bind("SUPER + SHIFT + E","#)
+            && line.contains("omarchy-shell shell summon omamail ")
+    })
 }
 
 /// On, in the order that never leaves the switch half made: the bindings
@@ -572,6 +582,9 @@ mod tests {
             "ours, mailto still Qt's"
         );
         assert!(!is_legacy_default(&ours, &mailto), "already moved");
+        let old_nsh = ours.replace(&shortcut_binding(" omamail://inbox/shortcut"), &shortcut_binding(""));
+        assert!(!is_legacy_default(&old_nsh, &mailto), "old NSH still owns mailto");
+        assert!(!is_legacy_default(&old_nsh, "thunderbird.desktop"), "another client owns mailto");
         assert!(
             !is_legacy_default("-- mine\n", "hey.desktop"),
             "never chosen"
@@ -637,7 +650,7 @@ mod tests {
         // programs. No value from the UI, the environment or the file.
         let block = bindings_block();
         assert_eq!(block.lines().count(), 6);
-        assert!(block.contains("gtk-launch dev.huacnlee.omamail omamail://inbox/shortcut\")"));
+        assert!(block.contains("gtk-launch dev.huacnlee.omamail.mailto omamail://inbox/shortcut\")"));
         assert!(block.contains("\"xdg-open mailto:\")"));
         assert!(
             block

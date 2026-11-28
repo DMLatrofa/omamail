@@ -48,6 +48,10 @@ case "${1:-}" in
     found=$(app_exec) || exit 1
     case "$found" in
       *.desktop)
+        # The release installer places the runner beside applications/.
+        # Earlier installs may have an Exec entry without URI forwarding.
+        runner="${found%/applications/*}/omamail/Omamail"
+        if [ -x "$runner" ]; then exec "$runner" omamail://inbox/bar; fi
         if command -v gtk-launch >/dev/null 2>&1; then exec gtk-launch "$DESKTOP_ID" omamail://inbox/bar; fi
         exec gio launch "$found" omamail://inbox/bar
         ;;
