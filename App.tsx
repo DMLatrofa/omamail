@@ -19,7 +19,7 @@ mount(() => {
   Application.setQuitMode("lastWindowClosed");
   const hide = hidesOnClose();
   const managesDropDown = dropDownSupported();
-  if (!managesDropDown) Application.on("reopen", () => bringToFront());
+  if (!managesDropDown) Application.on("reopen", () => { bringToFront(); });
   let quitting = false;
   async function quit() {
     if (quitting) return;
