@@ -85,7 +85,10 @@ export function Shell(props: ShellProps) {
   const window = currentWindow();
   effect(() => {
     if (app.closeRequests() > 0) untracked(() => void dismissInbox().then((result) => {
-      if (result === "window") window.close();
+      if (result === "window") {
+        if (hidesOnClose()) window.hide();
+        else window.close();
+      }
       if (result === "failed") toast({ title: "Could not hide the drop-down", kind: "error" });
     }));
   });
