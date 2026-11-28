@@ -83,7 +83,7 @@ When you confirm a link in a message, Brave, Chromium, or Google Chrome can open
 To use another key, add a binding such as this to `~/.config/hypr/bindings.lua`:
 
 ```lua
-o.bind("SUPER + SHIFT + G", "Omamail", "gtk-launch dev.huacnlee.omamail omamail://inbox/bar")
+o.bind("SUPER + SHIFT + G", "Omamail", "omamail-app omamail://inbox/bar")
 ```
 
 Press `?` in Omamail for the shortcut sheet, or see the [keyboard guide](docs/KEYS.md).
