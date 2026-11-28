@@ -18,7 +18,7 @@ mount(() => {
   // The backend is told to stop before the process goes.
   Application.setQuitMode("lastWindowClosed");
   const hide = hidesOnClose();
-  const managesDropDown = dropDownSupported();
+  const managesDropDown = !hide && dropDownSupported();
   if (!managesDropDown) Application.on("reopen", () => { bringToFront(); });
   let quitting = false;
   async function quit() {

@@ -16,6 +16,7 @@ function backend(accounts: Array<{ email: string; provider: string; label?: stri
       "Backend.nextEvent": () => null,
       "Backend.shutdown": () => undefined,
       "Backend.os": () => "linux",
+      "InboxWorkspace.supported": false,
       "Backend.launchMailto": launchMailto,
       "Backend.readConfig": (name: string) => written[name] ?? (name === "window.json" ? windowFile : null),
       "Backend.writeConfig": (name: string, text: string) => {
