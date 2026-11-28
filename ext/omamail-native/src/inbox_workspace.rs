@@ -45,10 +45,12 @@ impl InboxWorkspace {
         launch_source(std::env::args_os().skip(1))
     }
 
-    /// Whether the application has a Linux Hyprland session.
+    /// Whether Hyprland can run the Lua dispatchers used by the drop-down.
     pub fn supported() -> bool {
-        cfg!(target_os = "linux")
-            && std::env::var_os("HYPRLAND_INSTANCE_SIGNATURE").is_some_and(|s| !s.is_empty())
+        #[cfg(target_os = "linux")]
+        return linux::supported();
+        #[cfg(not(target_os = "linux"))]
+        false
     }
 
     /// Updates the managed inbox binding when Omamail is still the default.

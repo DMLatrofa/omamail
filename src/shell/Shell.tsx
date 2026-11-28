@@ -21,7 +21,7 @@ import { SettingsPage, settings } from "../features/settings";
 import { keyReport, registerCommand } from "../keys/commands";
 import { keyContext, mouseBack, useKeyRouter } from "../keys/router";
 import { isApple } from "../keys/labels";
-import { ConfirmHost, cx, FILL, SplitPane, SplitPanel, Toaster, uiScale } from "../ui";
+import { ConfirmHost, cx, FILL, SplitPane, SplitPanel, toast, Toaster, uiScale } from "../ui";
 import { Header } from "./Header";
 import { migrateLegacyMailClient, startLaunchLinks } from "./launch";
 import { bodyFor, LIST, listWidthFor, modeFor, SIDEBAR, sidebarVisible, sidebarWidthFor, type BodyState } from "./layout";
@@ -84,7 +84,10 @@ export function Shell(props: ShellProps) {
   // on macOS it hides it, as the close button does (the app stays in the Dock).
   const window = currentWindow();
   effect(() => {
-    if (app.closeRequests() > 0) untracked(() => void dismissInbox().then((hidden) => { if (!hidden) window.close(); }));
+    if (app.closeRequests() > 0) untracked(() => void dismissInbox().then((result) => {
+      if (result === "window") window.close();
+      if (result === "failed") toast({ title: "Could not hide the drop-down", kind: "error" });
+    }));
   });
 
   // Holding the mailbox digits' modifier (Ctrl; Command on Apple platforms,

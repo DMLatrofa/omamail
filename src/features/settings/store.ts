@@ -9,14 +9,14 @@
 // Nothing secret is ever stored here: OAuth clients go through the native
 // owner-only config, passwords and tokens through the backend's keyring.
 import { signal, Storage, untracked } from "nsh";
-import { Backend } from "omamail-native";
+import { Backend, InboxWorkspace } from "omamail-native";
 import { aiSettings } from "../assistant/settings";
 import { importCalendarSettings } from "../calendar/settings";
 import { calendarSettings } from "../calendar/settings";
 import { composeHost, setComposeHost } from "../../mail/compose/host";
 import { listStore } from "../list/store";
 import { readerPrefs } from "../reader/prefs";
-import { isOmarchyDesktop, setThemeMode, type ThemeMode } from "../../ui";
+import { isOmarchyDesktop, setThemeMode, toast, type ThemeMode } from "../../ui";
 import * as Model from "./model";
 
 const KEY = "omamail.settings";
@@ -102,6 +102,19 @@ function patch(next: Partial<Model.Settings>) {
 
 const get = <K extends keyof Model.Settings>(key: K) => () => settingsSignal()[key];
 
+export async function prepareEmailShortcut(): Promise<boolean> {
+  try {
+    return await InboxWorkspace.prepareShortcut();
+  } catch (failure) {
+    const code = failure instanceof Error ? failure.message : String(failure);
+    const title = code === "bindings_symlink"
+      ? "Update the email shortcut in your linked bindings.lua file"
+      : "Could not update the email shortcut";
+    toast({ title, kind: "error" });
+    return false;
+  }
+}
+
 export const settings = {
   /** Fixtures only: the defaults (with `values`), loaded from no storage and no config file. */
   preview(values: Partial<Model.Settings> = {}) {
@@ -115,10 +128,10 @@ export const settings = {
   },
   /** Reads the stored settings once; later calls share the first. A change made before the read lands wins. */
   load(): Promise<void> {
-    if (loaded) return Promise.resolve();
+    if (loaded) return loading ?? Promise.resolve();
     if (!loading) {
       loading = Storage.getItem(KEY)
-        .then((text) => {
+        .then(async (text) => {
           loaded = true;
           if (changedBeforeLoad) {
             push(untracked(() => settingsSignal()));
@@ -144,6 +157,11 @@ export const settings = {
           } else if (Model.needsAppearanceMigration(raw)) {
             // A version 1 record, migrated once (model.ts storedAppearance).
             persist();
+          }
+          if (next.openOnShortcut === "Drop-down") {
+            // Older managed bindings open the window until they carry the
+            // launch marker. The native method checks default-client status.
+            await prepareEmailShortcut();
           }
         })
         .catch(() => {

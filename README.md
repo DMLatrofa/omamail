@@ -76,7 +76,7 @@ The key bindings go in a clearly marked block in `~/.config/hypr/bindings.lua`; 
 
 ## Open the inbox as a drop-down
 
-On Hyprland, **Settings → Opening behavior** offers independent **Window** and **Drop-down** choices for the Omarchy envelope and `SUPER+SHIFT+E`. The shortcut's setting is available when Omamail is the default mail client. The drop-down follows your Hyprland layout. Press the opening control again to hide the inbox and any companion browser windows without closing them.
+With a Lua-based Hyprland configuration, **Settings → Opening behavior** offers independent **Window** and **Drop-down** choices for the Omarchy envelope and `SUPER+SHIFT+E`. The shortcut's setting is available when Omamail is the default mail client. The drop-down follows your Hyprland layout. Press the opening control again to hide the inbox and any companion browser windows without closing them.
 
 When you confirm a link in a message, Brave, Chromium, or Google Chrome can open next to the inbox if it is your default browser. The first link opens a new window with the browser's last-used profile. Later links reuse that window. Other browsers use the normal system link handler.
 

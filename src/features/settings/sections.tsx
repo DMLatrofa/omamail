@@ -2,7 +2,7 @@
 // notifications, writing's undo window, AI, keyboard and the Google client.
 // Port of components/SettingsPage.qml, BackendSetup.qml and AiSettings.qml.
 import { appInfo, cleanup, signal, Text, View } from "nsh";
-import { InboxWorkspace, MailClient } from "omamail-native";
+import { MailClient } from "omamail-native";
 import { app } from "../../app/store";
 import { call } from "../../backend/client";
 import { AGENTS } from "../../mail/agent/options";
@@ -13,7 +13,7 @@ import { googleClient } from "../accounts/flows";
 import { checkForUpdates } from "../../shell/updates";
 import { accountsStore } from "../../mail/accounts-store";
 import * as Model from "./model";
-import { settings } from "./store";
+import { prepareEmailShortcut, settings } from "./store";
 
 // ---------------------------------------------------------------- backend
 
@@ -330,10 +330,7 @@ export function OpeningBehaviorSection() {
     if (mode === "Drop-down") {
       changingShortcut.set(true);
       try {
-        if (!(await InboxWorkspace.prepareShortcut())) return;
-      } catch {
-        toast({ title: "Could not update the email shortcut", kind: "error" });
-        return;
+        if (!(await prepareEmailShortcut())) return;
       } finally {
         changingShortcut.set(false);
       }

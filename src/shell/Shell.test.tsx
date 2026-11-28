@@ -47,6 +47,131 @@ test("? opens the keyboard reference and Escape closes it", async () => {
   await app.waitFor("text:Keyboard shortcuts", { state: "gone" });
 });
 
+test("Escape keeps the inbox open when Hyprland cannot hide the drop-down", async () => {
+  let present = false;
+  let dismissals = 0;
+  const account = backend(JANE);
+  const app = await open("./fixtures/DropDownApp.tsx", {
+    modules: {
+      "omamail-native": {
+        ...account["omamail-native"],
+        "InboxWorkspace.supported": true,
+        "InboxWorkspace.present": () => {
+          present = true;
+          return "shown";
+        },
+        "InboxWorkspace.hide": () => {
+          if (++dismissals === 1) throw new Error("workspace_unavailable");
+          return true;
+        },
+      },
+    },
+  });
+  await app.waitFor("text:jane@example.com");
+  await app.waitUntil(() => present);
+  await app.keyboard.press("escape");
+  await app.waitFor("text:Could not hide the drop-down");
+  expect(app.shows("text:jane@example.com")).toBe(true);
+
+  // The next Escape dismisses the error notice before reaching the inbox.
+  await app.keyboard.press("escape");
+  await app.waitFor("text:Could not hide the drop-down", { state: "gone" });
+  await app.keyboard.press("escape");
+  await app.waitUntil(() => dismissals === 2);
+  expect(app.shows("text:jane@example.com")).toBe(true);
+});
+
+test("a later inbox launch waits for Escape to hide the drop-down", async () => {
+  const ordered: string[] = [];
+  const account = backend(JANE);
+  let visible = false;
+  const app = await open("./fixtures/DropDownApp.tsx", {
+    modules: {
+      "omamail-native": {
+        ...account["omamail-native"],
+        "InboxWorkspace.supported": true,
+        "InboxWorkspace.present": () => {
+          visible = !visible;
+          ordered.push(visible ? "shown" : "hidden");
+          return visible ? "shown" : "hidden";
+        },
+        "InboxWorkspace.hide": async () => {
+          ordered.push("hide started");
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          visible = false;
+          ordered.push("hide finished");
+          return true;
+        },
+      },
+    },
+  });
+  await app.waitFor("text:jane@example.com");
+  await app.waitUntil(() => ordered.includes("shown"));
+  await app.press("id:drop-down-reopen");
+  await app.waitUntil(() => ordered.length === 4);
+  expect(ordered).toEqual(["shown", "hide started", "hide finished", "shown"]);
+});
+
+test("minimizing after an incomplete Window transition preserves the retry", async () => {
+  const calls: string[] = [];
+  let attempts = 0;
+  const account = backend(JANE);
+  const app = await open("./fixtures/DropDownApp.tsx", {
+    modules: {
+      "omamail-native": {
+        ...account["omamail-native"],
+        "InboxWorkspace.supported": true,
+        "InboxWorkspace.present": (dropDown: boolean) => {
+          calls.push(dropDown ? "show" : "window");
+          if (dropDown) return "shown";
+          if (++attempts === 1) throw new Error("workspace_unavailable");
+          return "window";
+        },
+        "InboxWorkspace.hide": () => {
+          calls.push("minimize");
+          // Omamail already moved out of the special workspace on attempt 1.
+          return false;
+        },
+      },
+    },
+  });
+  await app.waitFor("text:jane@example.com");
+  await app.waitUntil(() => calls.includes("show"));
+  await app.press("id:drop-down-window-retry");
+  await app.waitUntil(() => calls.length === 4);
+  expect(calls).toEqual(["show", "window", "minimize", "window"]);
+});
+
+test("a dismissed inbox does not delegate its pending link to the system browser", async () => {
+  const account = backend(JANE);
+  let presented = false;
+  const app = await open("./fixtures/DropDownApp.tsx", {
+    modules: {
+      "omamail-native": {
+        ...account["omamail-native"],
+        "InboxWorkspace.supported": true,
+        "InboxWorkspace.present": () => {
+          presented = true;
+          return "shown";
+        },
+        "InboxWorkspace.openLink": async () => {
+          await new Promise((resolve) => setTimeout(resolve, 30));
+          return false;
+        },
+        "InboxWorkspace.hide": async () => {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          return true;
+        },
+      },
+    },
+  });
+  await app.waitUntil(() => presented);
+  await app.press("id:drop-down-system-browser");
+  await app.waitFor("text:System browser opened");
+  await app.press("id:drop-down-cancel-fallback");
+  await app.waitFor("text:System browser skipped");
+});
+
 test("closing the keyboard reference hands the focus back", async () => {
   // Headless runs keep no keyboard focus; run with --target macos to see it.
   const app = await open("./fixtures/FocusApp.tsx");
